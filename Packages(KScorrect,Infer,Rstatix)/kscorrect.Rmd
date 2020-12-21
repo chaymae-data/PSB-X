@@ -1,0 +1,163 @@
+---
+title: "KScorrect"
+author: "GASMI Chaymae"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Package KScorrect 
+
+
+KScorrect met en œuvre le test de Kolmogorov-Smirnov corrigé par Lilliefors pour une utilisation dans les tests de qualité d'ajustement, adapté lorsque les paramètres de population sont inconnus et doivent être estimés par des statistiques d'échantillon. Les P-values sont estimées par simulation. Codé pour compléter stats :: ks.test, il peut être utilisé avec une variété de distributions continues, y compris les distributions normales, lognormales, mélange de normales, uniformes, loguniformes, exponentielles, gamma et Weibull.
+
+Des fonctions sont également fournies pour générer des nombres aléatoires et calculer des fonctions de densité, de distribution et de quantile pour les distributions de mélange loguniformes et normales.
+
+```{r load-package, eval=FALSE, include=TRUE}
+#install.packages("devtools")
+library(devtools)
+```
+
+
+```{r, eval = FALSE}
+install.packages("infer")
+```
+
+## Les fonctions du Package KScorrect
+
+
+
+----------------------------------------------------
+
+### The Log Uniform Distribution:
+
+Densité, fonction de distribution, fonction de quantile et     génération aléatoire pour la distribution log uniforme dans l'intervalle de min à max. Les paramètres doivent être des valeurs brutes (non transformées en log) et seront transformées en log en utilisant la base spécifiée.
+
+----------------------------------------------------------------------------
+ 
+ *Usage*
+
++ `dlunif(x, min, max, base = exp(1))` : donne la densité. 
++ `plunif(q, min, max, base = exp(1))` : donne la  distribution de la                                                fonction.
++ `qlunif(p, min, max, base = exp(1))` : donne le quantile de la fonction.
++ `rlunif(n, min, max, base = exp(1))` : génére  des nombres aléatoires                                             random.
+
+----------------------------------------------------------------------------
+
+*Arguments*
+  
+
++`x`:  Vecteur de quantiles.
+
++`q`:Vecteur de quantiles.
+
++`p`: Vecteur de probabilités
+
++`n`: Nombres d'observations.
+
++`min`: Limite inférieure de la distribution, en valeurs brutes (non                transformées en log). Les valeurs négatives donneront un                    avertissement.
+
++`max`: Limite supérieure de la distribution, en valeurs brutes (non                transformées en log). Les valeurs négatives donneront un a                  avertissement.
+
++`base`: La base sur laquelle les logarithmes sont calculés. La valeur par           défaut est e = exp (1). Doit être un nombre positif.
+
+----------------------------------------------------------------------------
+
+
+ *Exemple d'applications*
+  
+   
+on va voir dans ce qui suit des exemples d'applications des fonctions du package(KScorrect):
+
+```{r echo=TRUE, eval=FALSE}
+
+plot(2:200, dlunif(2:200, exp(1), exp(20)), type="l", main="Loguniform density")
+plot(log(2:200), dlunif(log(2:200), log(1), log(20)), type="l", main="Loguniform density")
+plot(2:200, plunif(2:200, exp(1), exp(20)), type="l", main="Loguniform cumulative")
+plot(qlunif(ppoints(200), exp(1), exp(20)), type="l", main="Loguniform quantile")
+
+hist(rlunif(2000, exp(1), exp(20)), main="random loguniform sample")
+hist(log(rlunif(20000, exp(1), exp(20))), main="random loguniform sample")
+hist(log(rlunif(20000, exp(1), exp(20), base=10), base=10), main="random loguniform sample")
+
+```
+
+
+---------------------------------------------------------------------------
+
+
+### The Normal Mixture Distribution:
+
+
+Densité, fonction de distribution, fonction quantile et génération aléatoire pour une distribution univariée (unidimensionnelle) composée d'un mélange de distributions normales avec des moyennes égales à la moyenne, des écarts-types égaux à sd et une proportion de mélange des composantes égale à pro.
+  
+  
+----------------------------------------------------------------------------
+  
+*Usage*
+  
++ `dmixnorm(x,mean,sd,pro)`:donne la densité.
++ `dmixnorm(q,mean,sd,pro)`:donne la  distribution de la fonction.
++ `dmixnorm(p,mean,sd,pro,expand=1)`:donne le quantile de la fonction. 
++ `dmixnorm(n,mean,sd,pro)`:génére  des nombres aléatoires random.
+
+----------------------------------------------------------------------------
+
+*Arguments*
+  
+  
++`x`:  Vecteur de quantiles.
+
++`mean`: Vecteur de moyennes, un pour chaque composant.
+
++`sd` :Vecteur d'écarts types, un pour chaque composant. Si une seule              valeur est fournie, un modèle de mélange à variance égale est               implémenté.Doit être non négatif.
+
++`pro`: Vecteur de proportions de mélange, un pour chaque composant. S'il           manque, un modèle à proportion égale est implémenté, avec un                avertissement. Si les proportions ne correspondent pas à Unity,             elles sont redimensionnées pour ce faire. Doit être non négatif.
+
++`q`:Vecteur de quantiles.
+
++`p`: Vecteur de probabilités.
+
++`expand`:Valeur pour élargir la plage de probabilités pour l'approximation           quantile. Valeur par défaut = 1,0. 
+
++`n`: Nombres d'observations.
+
+
+----------------------------------------------------------------------------
+
+*Exemple d'applications*
+ 
+on va voir dans ce qui suit des exemples d'applications des fonctions du package(KScorrect):
+
+NB : on aura besoin du package mclust
+
+```{r echo=TRUE, eval=FALSE}
+mean <- c(2, 8)
+pro <- c(.30, .100)
+sd <- c(.9, 2)
+x <- rmixnorm(n=7000, mean=mean, pro=pro, sd=sd)
+hist(x, n=30, main="random bimodal sample")
+plot(seq(0, 20, .1), dmixnorm(seq(0, 20, .1), mean=mean, sd=sd, pro=pro),
+type="l", main="Normal mixture density")
+plot(seq(0, 20, .1), pmixnorm(seq(0, 20, .1), mean=mean, sd=sd, pro=pro),
+type="l", main="Normal mixture cumulative")
+plot(stats::ppoints(200), qmixnorm(stats::ppoints(200), mean=mean, sd=sd, pro=pro), type="l", main="Normal mixture quantile")
+```
+
+----------------------------------------------------------------------------
+
+###  ks_test_stat:Internal KScorrect Function:
+
+Fonction interne non destinée à être appelée directement par les utilisateurs.
+
++`ks.test`:fonction qui calcule uniquement la statistique du test bilatéral D.
+
+
+
+
+
+
+
+
+
