@@ -1,0 +1,96 @@
+---
+title: "Rstatix"
+author: "Zakaria Ridadarajat"
+output: 
+  pdf_document: 
+    keep_tex: yes
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Package Rstatix:
+
+Le Package "Rstatix" fournit un cadre simple et intuitif, pour effectuer des tests statistiques de base, y compris le test de comparaison de moyenne, le test de Wilcoxon, l'ANOVA, Kruskal-Wallis et les analyses de corrélation.
+
+La sortie de chaque test est automatiquement transformée en tidy data frame afin de faciliter la visualisation.
+
+```{r}
+library(datarium)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+```
+
+Nous utiliserons le jeu de données sur l’estime de soi mesuré sur trois points temporels. Les données sont disponibles dans le package "datarium".
+
+```{r}
+# Préparation des données
+# Format large
+data("selfesteem", package = "datarium")
+head(selfesteem, 6)
+```
+```{r}
+# Rassembler les colonnes t1, t2 et t3 en format long
+# Convertir l'identifiant et le temps en facteurs
+selfesteem <- selfesteem %>%
+  gather(key = "time", value = "score", t1, t2, t3) %>%
+  convert_as_factor(id, time)
+head(selfesteem, 3)
+```
+## Statistiques descriptives:
+
+Calculons quelques statistiques sommaires du score d’estime de soi par groupe (temps) : moyenne et sd (écart-type) en utilisant la fonction "get_summary_stats" qui est l'une des fonctions du package "Rstatix".
+```{r}
+selfesteem %>%
+  group_by(time) %>%
+  get_summary_stats(score, type = "mean_sd")
+```
+
+## Visualisation:
+Nous allons créer un box plot et ajouter des points correspondant à des valeurs individuelles pour la variable "score d’estime de soi" selon les trois points temporels.
+```{r}
+bxp <- ggboxplot(selfesteem, x = "time", y = "score", add = "point")
+bxp
+```
+
+
+
+
+## Vérification des hypothèses
+### Valeurs aberrantes
+Les valeurs aberrantes peuvent être facilement identifiées à l’aide de méthodes des boxplots, implémentées dans la fonction R identify_outliers()
+
+```{r}
+selfesteem %>%
+  group_by(time) %>%
+  identify_outliers(score)
+```
+on remarque qu'il n'y pas de valeurs aberrantes sur nos données [is.extreme=FALSE].
+
+### Hypothèse de normalité
+L’hypothèse de normalité peut être vérifiée en calculant le test de Shapiro-Wilk pour chaque point dans le temps. Si les données sont normalement distribuées, la p-value doit être supérieure à 0,05.
+
+```{r}
+selfesteem %>%
+  group_by(time) %>%
+  shapiro_test(score)
+```
+
+Le score d’estime de soi est normalement distribué à chaque point dans le temps, tel qu’évalué par le test de Shapiro-Wilk (p > 0,05).
+
+### Hypothèse de sphéricité
+L’hypothèse de sphéricité sera automatiquement vérifiée lors du calcul du test ANOVA en utilisant la fonction R anova_test() du package Rstatix. Le test de Mauchly est utilisé en interne pour évaluer l’hypothèse de sphéricité.
+
+on utilise la fonction get_anova_table() pour extraire la table ANOVA, par ailleurs, la correction de sphéricité de Greenhouse-Geisser est automatiquement appliquée aux facteurs qui violent l’hypothèse de sphéricité.
+
+## Calcul Anova:
+
+```{r}
+res.aov <- anova_test(data = selfesteem, dv = score, wid = id, within = time)
+get_anova_table(res.aov)
+```
+
+D'après les resultats du modèle Anova,le score de l’estime de soi était statistiquement significativement différent aux différents temps pendant le régime vu que la p-value est inférieure à 5%.
