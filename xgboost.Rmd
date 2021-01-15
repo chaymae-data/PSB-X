@@ -1,0 +1,155 @@
+---
+title: '<center> **XGBoost : Extreme Gradient Boosting**</center>'
+author: '<center>*GASMI Chaymae*</center>'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+********************************************************************************
+
+### 1. Definition
+
+
+XGBoost est une bibliothèque optimisée de renforcement de gradient distribuée conçue pour être très efficace,exible et portable. Il implémente des algorithmes d’apprentissage automatique dans le cadre de Gradient Boosting. XGBoost fournit un boost d’arborescence parallèle (également connu sous le nom de GBDT, GBM) qui résout de nombreux problèmes de science des données de manière rapide et précise.
+
+XGBoost est une méthode d'apprentissage d'ensemble. Parfois, il ne suffit pas de se fier aux résultats d'un seul modèle d'apprentissage automatique. L'apprentissage d'ensemble offre une solution systématique pour combiner le pouvoir prédictif de plusieurs apprenants. Le résultat est un modèle unique qui donne la sortie agrégée de plusieurs modèles.
+
+Avant d’exposer plus en détails le fonctionnement de l’algorithme, il est sans doute utile d’effectuer quelques rappels concernant l’apprentissage supervisé.
+
+**Modèle et paramètres**
+
+Un modèle en apprentissage supervisé fait souvent référence à la structure mathématique
+qui permet d’effectuer une prédiction $\hat{y}_{i}$ à partir d’un élément xi
+, pour i ∈ [0; n] et n le nombre d’individus de la base de données. Ainsi, un modèle courant est le modèle linéaire où la prédiction
+est donnée par : $\hat{y}_{i}=\sum_{j} \hat{\theta}_{j} \times x_{i, j}$ une combinaison linéaire pondérée des j variables explicatives.
+Les paramètres sont les inconnus que l’on cherche à estimer à partir des données. Dans le cas d’une régression linéaire par exemple, les paramètres sont les coefficients θ.
+
+**La fonction objectif : fonction de perte et terme de régularisation**
+
+Quel que soit le problème que l’on souhaite résoudre à l’aide d’un modèle, on a toujours besoin d’un moyen de trouver une manière d’estimer les meilleurs paramètres pour le modèle. Pour parvenir à cela, il est nécessaire de faire appel à une fonction objectif. Cette fonction permet en effet de mesurer la performance d’un modèle en fonction d’un ensemble de paramètres.
+
+Une fonction objectif peut être définie de la manière que l’on souhaite, pour autant, pour qu’elle soit pertinente, elle doit se composer d’une fonction de perte et d’un terme de régularisation :
+***Obj(·) = L(·) + K(·)***
+où Obj est la fonction objectif composée par L, une fonction de perte et K un terme de régularisation.
+La fonction de perte mesure la qualité de la prédiction du modèle sur les données fournies en apprentissage. Assez communément, pour un jeu de paramètres θ, la fonction de perte est l’erreur quadratique moyenne :
+
+$L(\theta)=\frac{1}{n} \sum_{i}\left(y_{i}-\hat{y}_{i}\right)^{2}$
+
+Le terme de régularisation permet de contrôler la complexité du modèle et d’éviter le surapprentissage. Ce terme n’a pas de forme prédéfinie à priori et est souvent défini en fonction du
+problème. L’idée générale est qu’il doit permettre d’avoir un modèle simple et performant à la fois.
+
+Le modèle sous-jacent à l’algorithme XGBoost est l’agrégation d’arbres (ou boosting d’arbres).
+
+L’agrégation d’arbres est un modèle composé d’arbres de régression ou de classification.
+
+
+
+### 2. Optimizing Tree structure
+
+Pour $\hat{y}=\sum_{b=1}^{B} f_{b}$, une fonction coût géneral $l$, on veut minimiser la fonction objectif suivante :
+$$
+\min \leftarrow \sum_{i=1}^{n} l\left(y_{i}, \hat{y}_{i}\right)+\sum_{b=1}^{B} \Omega\left(f_{b}\right)
+$$
+avec $\Omega\left(f_{b}\right)=\gamma|T|+\frac{1}{2} \lambda \sum_{j=1}^{|T|} w_{j}^{2},$ et $|T|=d+1$ est le nombre de feuille de l'arbre de décision
+,$w_{j}$ sont les poids de régression d'une feuille (région) $R_{j}$
+
+
+### 3. Additive training (Boosting)
+
+On part d’une prédiction constante et on ajoute une nouvelle fonction à chaque fois :
+
+$$
+\begin{aligned}
+\hat{y}_{i}^{(0)} &=0 \\
+\hat{y}_{i}^{(1)} &=f_{1}\left(x_{i}\right)=\hat{y}^{(0)}+f_{1}\left(x_{i}\right) \\
+\hat{y}_{i}^{(2)} &=f_{1}\left(x_{i}\right)+f_{2}\left(x_{i}\right)=\hat{y}^{(1)}+f_{2}\left(x_{i}\right) \\
+& \cdots \\
+\hat{y}_{i}^{(t)} &=\sum_{b=1}^{t} f_{b}\left(x_{i}\right)=\hat{y}^{(t-1)}+f_{t}\left(x_{i}\right)
+\end{aligned}
+$$
+
+### 4. XGBoost implementation
+
+ Comment décidons-nous quels $ f_ {t} $ (fractionnements) ajouter? On Optimise l'objectif!
+- La prédiction au rang $ t $ est $\hat{y}_{i}^{(t)}=\hat{y}_{i}^{(t-1)}+f_{t}\left(x_{i}\right),$ so that
+$$
+\begin{aligned}
+\mathrm{Obj}^{(t)} &=\sum_{i=1}^{n} l\left(y_{i}, \hat{y}_{i}^{(t)}\right)+\sum_{b=1}^{t} \Omega\left(f_{b}\right) \\
+&=\sum_{i=1}^{n} l\left(y_{i}, \hat{y}_{i}^{(t-1)}+f_{t}\left(x_{i}\right)\right)+\Omega\left(f_{t}\right)+C
+\end{aligned}
+$$
+- On considére la fonction cout $l_{2}$ :
+$$
+\begin{aligned}
+\mathrm{Obj}^{(t)} &=\sum_{i=1}^{n}\left(y_{i}-\left(\hat{y}_{i}^{(t-1)}+f_{t}\left(x_{i}\right)\right)\right)^{2}+\Omega\left(f_{t}\right)+C_{1} \\
+&=\sum_{i=1}^{n}\left[2\left(\hat{y}_{i}^{(t-1)}-y_{i}\right) f_{t}\left(x_{i}\right)+f_{t}\left(x_{i}\right)^{2}\right]+\Omega\left(f_{t}\right)+C_{2}
+\end{aligned}
+$$
+
+### 5. Developpement de Taylor
+
+On rapelle le developpement de Taylor :
+- $f(x+\Delta x) \approx f(x)+f^{\prime}(x) \Delta x+\frac{1}{2} f^{\prime \prime}(x) \Delta x^{2}$
+On définit $g_{i}=\partial_{\hat{y}_{i}^{(t-1)}} l\left(y_{i}, \hat{y}_{i}^{(t-1)}\right), \quad h_{i}=\partial_{\hat{y}_{i}^{(t-1)}}^{2} l\left(y_{i}, \hat{y}_{i}^{(t-1)}\right)$
+Donc :
+$$
+\mathrm{Obj}^{(t)} \approx \sum_{i=1}^{n}\left[l\left(y_{i}, \hat{y}_{i}^{(t-1)}\right)+g_{i} f_{t}\left(x_{i}\right)+\frac{1}{2} h_{i} f_{t}\left(x_{i}\right)^{2}\right]+\Omega\left(f_{t}\right)+C
+$$
+- On considére le cas de la fonction cout $l_{2}$ :
+$$
+\begin{array}{l}
+g_{i}=\partial_{\hat{y}_{i}^{(t-1)}}\left(\hat{y}_{i}^{(t-1)}-y_{i}\right)^{2}=2\left(\hat{y}_{i}^{(t-1)}-y_{i}\right) \\
+h_{i}=\partial_{\hat{y}_{i}^{(t-1)}}^{2}\left(\hat{y}_{i}^{(t-1)}-y_{i}\right)^{2}=2
+\end{array}
+$$
+
+
+### 6. Retour sur les objectifs
+
+
+- On définit $J: \mathbb{R}^{p} \rightarrow T, x \mapsto R_{j}$ for $j: x \in R_{j}$, On Supprime les constantes et regroupe par feuilles :
+$$
+\begin{aligned}
+\mathrm{Obj}^{(t)} & \approx \sum_{i=1}^{n}\left[g_{i} f_{t}\left(x_{i}\right)+\frac{1}{2} h_{i} f_{t}^{2}\left(x_{i}\right)\right]+\Omega\left(f_{t}\right) \\
+&=\sum_{i=1}^{n}\left[g_{i} w_{J\left(x_{i}\right)}+\frac{1}{2} h_{i} w_{J\left(x_{i}\right)}^{2}\right]+\gamma|T|+\frac{1}{2} \lambda \sum_{j=1}^{|T|} w_{j}^{2} \\
+&=\sum_{j=1}^{|T|}\left[\left(\sum_{i: x_{i} \in R_{j}} g_{i}\right) w_{j}+\frac{1}{2}\left(\sum_{i: x_{i} \in R_{j}} h_{i}+\lambda\right) w_{j}^{2}\right]+\gamma|T|
+\end{aligned}
+$$
+- C'est la somme de $ | T | $ fonctions quadratiques indépendantes , on reconnait deux faits sur la fonction quadratique à variable unique
+$$
+\arg \min _{x} G x+\frac{1}{2} H x^{2}=-\frac{G}{H}, H>0, \quad \min _{x} G x+\frac{1}{2} H x^{2}=-\frac{1}{2} \frac{G^{2}}{H}
+$$
+- On définit $G_{j}=\sum_{i: x_{i} \in R_{j}} g_{i}$ and $H_{j}=\sum_{i: x_{i} \in R_{j}} h_{i}$ , donc :
+$$
+\mathrm{Obj}^{(t)} \approx \sum_{j=1}^{|T|}\left[G_{j} w_{j}+\frac{1}{2}\left(H_{j}+\lambda\right) w_{j}^{2}\right]+\gamma|T|
+$$
+- Supposons la structure de l'arbre $\left(R_{j}\right)_{j=1}^{|T|}$ est fixée , 
+le poids optimal de chaque feuille et la valeur objective résultante sont :
+$$
+w_{j}^{*}=-\frac{G_{j}}{H_{j}+\lambda}, \quad \mathrm{Obj}^{(t)} \approx-\frac{1}{2} \sum_{j=1}^{|T|} \frac{G_{j}^{2}}{H_{j}+\lambda}+\gamma \mid T
+$$
+
+
+### 7. XGBoost parameters
+
+- ETA [par défaut = 0,3, alias: taux d'apprentissage] Réduction de la taille des pas utilisée dans la mise à jour pour éviter le surajustement. Après à chaque étape de boost, nous pouvons directement obtenir le poids des nouvelles fonctionnalités,et eta réduit les poids des fonctionnalités pour rendre le processus de renforcement plus conservateur.
+
+- GAMMA [par défaut = 0, alias: minsplitloss] Réduction minimale des pertes requise pour effectuer une nouvelle partition sur unnœud feuille de l'arbre. Plus le gamma est grand, plus il est conservateur
+l'algorithme sera.
+
+- Maxdepth [par défaut = 6] Profondeur maximale d'un arbre. Augmenter cette valeur rendra le modèle plus complexe et plus susceptible de dépasser t. 0 indique non limite.
+
+- Colsamplebytree [par défaut = 1]
+
+- Rapport de sous-échantillon des colonnes lors de la construction de chaque arbre.
+
+- Le sous-échantillonnage se produira une fois dans chaque itération d'amplification.
+
+
+**Bibliographie**
+
+https://www.institutdesactuaires.com/global/gene/link.php?news_link=mem%2Fb22bc48b9f8858867c7653eb8921e3d8.pdf&fg=1
+
